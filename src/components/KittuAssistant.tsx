@@ -3,14 +3,16 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Mic, Settings, LogOut } from 'lucide-react';
+import { Send, Mic, Settings, LogOut, GamepadIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useChat } from '@/hooks/useChat';
 import { useVoiceSynthesis } from '@/hooks/useVoiceSynthesis';
+import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
 import ChatMessage from './ChatMessage';
 import VoiceWave from './VoiceWave';
 import { AuthForm } from './AuthForm';
 import { SettingsPanel } from './SettingsPanel';
+import { GamesPanel } from './GamesPanel';
 import { parseCommand, executeCommand } from '@/utils/commandParser';
 
 const KittuAssistant = () => {
@@ -18,6 +20,7 @@ const KittuAssistant = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [input, setInput] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [showGames, setShowGames] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -28,6 +31,18 @@ const KittuAssistant = () => {
   const { speak, stop, isSpeaking } = useVoiceSynthesis(
     profile?.voice_enabled ?? true,
     profile?.voice_speed || 1.0
+  );
+
+  const handleVoiceInput = (text: string) => {
+    setInput(text);
+    toast({
+      title: 'Voice recognized',
+      description: `"${text}"`,
+    });
+  };
+
+  const { isListening, startListening, stopListening, isSupported } = useVoiceRecognition(
+    handleVoiceInput
   );
 
   useEffect(() => {
@@ -132,6 +147,32 @@ const KittuAssistant = () => {
     await sendMessage(userInput);
   };
 
+  const handleVoiceToggle = () => {
+    if (!isSupported) {
+      toast({
+        title: 'Voice input not supported',
+        description: 'Your browser does not support voice recognition.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (isListening) {
+      stopListening();
+    } else {
+      const langMap: Record<string, string> = {
+        en: 'en-US',
+        hi: 'hi-IN',
+        hinglish: 'en-IN',
+      };
+      startListening(langMap[profile?.language_preference] || 'en-US');
+      toast({
+        title: 'Listening...',
+        description: 'Speak now',
+      });
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast({
@@ -166,6 +207,14 @@ const KittuAssistant = () => {
             <span className="text-sm text-muted-foreground hidden sm:block">
               {profile?.full_name || user.email}
             </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowGames(true)}
+              className="hover:bg-glow-cyan/10"
+            >
+              <GamepadIcon className="h-5 w-5" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -218,13 +267,11 @@ const KittuAssistant = () => {
           <Button
             variant="outline"
             size="icon"
-            className="flex-shrink-0 border-glow-cyan/30 hover:bg-glow-cyan/10"
-            onClick={() => {
-              toast({
-                title: 'Voice input coming soon!',
-                description: 'Speech recognition will be available in the next update.',
-              });
-            }}
+            className={`flex-shrink-0 border-glow-cyan/30 hover:bg-glow-cyan/10 ${
+              isListening ? 'bg-red-500 hover:bg-red-600 animate-pulse' : ''
+            }`}
+            onClick={handleVoiceToggle}
+            disabled={!isSupported}
           >
             <Mic className="h-5 w-5" />
           </Button>
@@ -255,6 +302,8 @@ const KittuAssistant = () => {
           userId={user.id}
         />
       )}
+
+      {showGames && <GamesPanel onClose={() => setShowGames(false)} />}
     </div>
   );
 };
