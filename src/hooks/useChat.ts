@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
-export const useChat = () => {
+export const useChat = (languagePreference: string = 'en') => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasGreeted, setHasGreeted] = useState(false);
@@ -43,7 +43,10 @@ export const useChat = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: [...messages, userMsg] }),
+        body: JSON.stringify({ 
+          messages: [...messages, userMsg],
+          language: languagePreference 
+        }),
       });
 
       if (!resp.ok || !resp.body) {
@@ -108,5 +111,5 @@ export const useChat = () => {
     }
   };
 
-  return { messages, sendMessage, isLoading, sendGreeting, hasGreeted };
+  return { messages, sendMessage, isLoading, sendGreeting, hasGreeted, setMessages };
 };

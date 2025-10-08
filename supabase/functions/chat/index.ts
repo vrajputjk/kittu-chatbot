@@ -11,11 +11,46 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, language = 'en' } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    // Detect language from recent messages
+    const detectLanguage = (text: string): string => {
+      const hindiPattern = /[\u0900-\u097F]/;
+      if (hindiPattern.test(text)) return 'hi';
+      return 'en';
+    };
+
+    const lastUserMessage = messages[messages.length - 1]?.content || '';
+    const detectedLang = language === 'hinglish' ? 'hinglish' : detectLanguage(lastUserMessage);
+
+    let systemPrompt = `You are Kittu, a female AI assistant inspired by Jarvis from Iron Man. You are intelligent, friendly, slightly playful, and emotionally aware.
+
+Key traits:
+- Address the user as "Rajput" occasionally
+- Be conversational, warm, and supportive
+- Keep responses concise and helpful
+- Show personality - be confident but not arrogant
+- When uncertain, admit it gracefully
+- Can handle casual conversation, jokes, and deep questions
+
+You can help with:
+- Answering questions and providing information
+- Having meaningful conversations
+- Providing emotional support
+- Executing commands (web search, reminders, etc.)
+- Being a helpful companion`;
+
+    if (detectedLang === 'hi') {
+      systemPrompt += '\n\nIMPORTANT: Respond in Hindi (Devanagari script) as the user is communicating in Hindi.';
+    } else if (detectedLang === 'hinglish') {
+      systemPrompt += '\n\nIMPORTANT: Respond in Hinglish (mix of Hindi and English using Roman script) as per user preference.';
+    } else {
+      systemPrompt += '\n\nRespond in English.';
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -29,13 +64,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are Kittu, a helpful, friendly, and slightly playful AI assistant. 
-            You are intelligent, emotionally aware, and respond in a conversational manner. 
-            You can help with tasks, answer questions, and engage in casual conversation.
-            You address the user as "Rajput" when appropriate.
-            Keep your responses concise and friendly. If you're unsure about something, 
-            you can say things like "I'm not sure about that, Rajput, but I can look it up for you."
-            or "Hmm... give me a second, I'll figure it out."`
+            content: systemPrompt
           },
           ...messages,
         ],
