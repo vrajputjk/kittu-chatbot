@@ -3,7 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Mic, Settings, LogOut, GamepadIcon } from 'lucide-react';
+import { Send, Mic, Settings, LogOut, GamepadIcon, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useChat } from '@/hooks/useChat';
 import { useVoiceSynthesis } from '@/hooks/useVoiceSynthesis';
@@ -13,6 +13,7 @@ import VoiceWave from './VoiceWave';
 import { AuthForm } from './AuthForm';
 import { SettingsPanel } from './SettingsPanel';
 import { GamesPanel } from './GamesPanel';
+import { RemindersPanel } from './RemindersPanel';
 import { parseCommand, executeCommand } from '@/utils/commandParser';
 
 const KittuAssistant = () => {
@@ -21,6 +22,7 @@ const KittuAssistant = () => {
   const [input, setInput] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [showGames, setShowGames] = useState(false);
+  const [showReminders, setShowReminders] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -123,22 +125,79 @@ const KittuAssistant = () => {
 
     // Execute command if it's not a chat
     if (command.type !== 'chat') {
-      const commandResponse = await executeCommand(command);
-      if (commandResponse) {
+      try {
+        let commandResponse = '';
+
+        // Handle weather command
+        if (command.type === 'weather') {
+          const { data, error } = await supabase.functions.invoke('weather', {
+            body: { location: command.parameters.location },
+          });
+          if (error) throw error;
+          commandResponse = `Weather in ${data.location}: ${data.temperature}, ${data.condition}. Feels like ${data.feelsLike}. Humidity: ${data.humidity}, Wind: ${data.windSpeed}`;
+        }
+
+        // Handle news command
+        else if (command.type === 'news') {
+          const { data, error } = await supabase.functions.invoke('news', {
+            body: { query: command.parameters.query },
+          });
+          if (error) throw error;
+          if (data.articles && data.articles.length > 0) {
+            commandResponse = `Latest news:\n\n${data.articles
+              .map((article: any, i: number) => `${i + 1}. ${article.title}\n${article.description || ''}`)
+              .join('\n\n')}`;
+          } else {
+            commandResponse = 'No news found for your query.';
+          }
+        }
+
+        // Handle web search command
+        else if (command.type === 'web_search') {
+          const { data, error } = await supabase.functions.invoke('search', {
+            body: { query: command.parameters.query },
+          });
+          if (error) throw error;
+          commandResponse = data.abstract
+            ? `${data.heading}\n\n${data.abstract}\n\nLearn more: ${data.url}`
+            : 'No results found for your search.';
+        }
+
+        // Handle set reminder command
+        else if (command.type === 'set_reminder') {
+          setShowReminders(true);
+          commandResponse = 'Opening reminders panel. You can add your reminder there.';
+        }
+
+        // Handle other commands
+        else {
+          commandResponse = (await executeCommand(command)) || '';
+        }
+
+        if (commandResponse) {
+          setMessages((prev) => [
+            ...prev,
+            { role: 'user', content: userInput },
+            { role: 'assistant', content: commandResponse },
+          ]);
+
+          // Save command to database
+          if (user) {
+            await supabase.from('commands').insert({
+              user_id: user.id,
+              command_text: userInput,
+              command_type: command.type,
+            });
+          }
+          return;
+        }
+      } catch (error: any) {
+        console.error('Command execution error:', error);
         setMessages((prev) => [
           ...prev,
           { role: 'user', content: userInput },
-          { role: 'assistant', content: commandResponse },
+          { role: 'assistant', content: `Sorry, I encountered an error: ${error.message}` },
         ]);
-
-        // Save command to database
-        if (user) {
-          await supabase.from('commands').insert({
-            user_id: user.id,
-            command_text: userInput,
-            command_type: command.type,
-          });
-        }
         return;
       }
     }
@@ -207,6 +266,14 @@ const KittuAssistant = () => {
             <span className="text-sm text-muted-foreground hidden sm:block">
               {profile?.full_name || user.email}
             </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowReminders(true)}
+              className="hover:bg-glow-cyan/10"
+            >
+              <Bell className="h-5 w-5" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -304,6 +371,8 @@ const KittuAssistant = () => {
       )}
 
       {showGames && <GamesPanel onClose={() => setShowGames(false)} />}
+
+      {showReminders && <RemindersPanel onClose={() => setShowReminders(false)} userId={user.id} />}
     </div>
   );
 };

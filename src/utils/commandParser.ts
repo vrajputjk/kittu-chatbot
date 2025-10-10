@@ -3,6 +3,8 @@ export type CommandType =
   | 'open_app'
   | 'set_reminder'
   | 'translate'
+  | 'weather'
+  | 'news'
   | 'chat'
   | 'unknown';
 
@@ -14,6 +16,26 @@ export interface ParsedCommand {
 
 export const parseCommand = (input: string): ParsedCommand => {
   const lowerInput = input.toLowerCase().trim();
+
+  // Weather patterns
+  if (lowerInput.includes('weather')) {
+    const locationMatch = input.match(/weather\s+(?:in|at|for)\s+(.+)/i);
+    return {
+      type: 'weather',
+      intent: 'Get weather information',
+      parameters: { location: locationMatch?.[1] || 'current location' },
+    };
+  }
+
+  // News patterns
+  if (lowerInput.includes('news')) {
+    const topicMatch = input.match(/news\s+(?:about|on)\s+(.+)/i);
+    return {
+      type: 'news',
+      intent: 'Get news',
+      parameters: { query: topicMatch?.[1] || 'general' },
+    };
+  }
 
   // Web search patterns
   if (
