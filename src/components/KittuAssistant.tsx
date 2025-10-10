@@ -3,17 +3,18 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Mic, Settings, LogOut, GamepadIcon, Bell } from 'lucide-react';
+import { Mic, Settings, LogOut, GamepadIcon, Bell, Keyboard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useChat } from '@/hooks/useChat';
 import { useVoiceSynthesis } from '@/hooks/useVoiceSynthesis';
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
 import ChatMessage from './ChatMessage';
-import VoiceWave from './VoiceWave';
 import { AuthForm } from './AuthForm';
 import { SettingsPanel } from './SettingsPanel';
 import { GamesPanel } from './GamesPanel';
 import { RemindersPanel } from './RemindersPanel';
+import { SuggestionChips } from './SuggestionChips';
+import { AssistantAvatar } from './AssistantAvatar';
 import { parseCommand, executeCommand } from '@/utils/commandParser';
 
 const KittuAssistant = () => {
@@ -242,35 +243,24 @@ const KittuAssistant = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-space-dark via-space-dark to-glow-purple/10 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <AuthForm onSuccess={() => {}} />
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-space-dark via-space-dark to-glow-purple/10">
-      {/* Header */}
-      <div className="border-b border-glow-cyan/20 bg-space-dark/80 backdrop-blur-sm px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-glow-cyan to-glow-purple animate-pulse-glow flex items-center justify-center">
-              <span className="text-xl font-bold">K</span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold glow-text">Kittu</h1>
-              <p className="text-sm text-muted-foreground">AI Assistant</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground hidden sm:block">
-              {profile?.full_name || user.email}
-            </span>
+    <div className="h-screen flex flex-col bg-background">
+      {/* Minimal Header */}
+      <div className="border-b border-border bg-card/50 backdrop-blur-sm px-4 py-3">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <h1 className="text-lg font-medium text-foreground">Assistant</h1>
+          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setShowReminders(true)}
-              className="hover:bg-glow-cyan/10"
+              className="rounded-full"
             >
               <Bell className="h-5 w-5" />
             </Button>
@@ -278,7 +268,7 @@ const KittuAssistant = () => {
               variant="ghost"
               size="icon"
               onClick={() => setShowGames(true)}
-              className="hover:bg-glow-cyan/10"
+              className="rounded-full"
             >
               <GamepadIcon className="h-5 w-5" />
             </Button>
@@ -286,7 +276,7 @@ const KittuAssistant = () => {
               variant="ghost"
               size="icon"
               onClick={() => setShowSettings(true)}
-              className="hover:bg-glow-cyan/10"
+              className="rounded-full"
             >
               <Settings className="h-5 w-5" />
             </Button>
@@ -294,7 +284,7 @@ const KittuAssistant = () => {
               variant="ghost"
               size="icon"
               onClick={handleLogout}
-              className="hover:bg-glow-cyan/10"
+              className="rounded-full"
             >
               <LogOut className="h-5 w-5" />
             </Button>
@@ -302,61 +292,79 @@ const KittuAssistant = () => {
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-8">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-glow-cyan to-glow-purple animate-float flex items-center justify-center mb-6">
-              <span className="text-4xl font-bold">K</span>
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+              <AssistantAvatar 
+                isListening={isListening} 
+                isSpeaking={isSpeaking}
+                size="lg"
+              />
+              <h2 className="text-4xl font-normal mt-8 mb-2">
+                Hi, {profile?.full_name || 'there'}
+              </h2>
+              <p className="text-muted-foreground mb-8">How can I help you today?</p>
+              <SuggestionChips onSuggestionClick={(text) => {
+                setInput(text);
+                handleSend();
+              }} />
             </div>
-            <h2 className="text-3xl font-bold mb-2 glow-text">Welcome back, {profile?.full_name || 'Rajput'}!</h2>
-            <p className="text-muted-foreground max-w-md">
-              I'm Kittu, your AI assistant. I can help you with conversations, commands, and more. Try saying "search for AI news" or just chat with me!
-            </p>
-          </div>
-        ) : (
-          messages.map((message, index) => (
-            <ChatMessage key={index} role={message.role} content={message.content} />
-          ))
-        )}
-        {isLoading && (
-          <div className="flex items-center gap-3 p-4">
-            <VoiceWave isActive={true} />
-            <span className="text-sm text-muted-foreground">Kittu is thinking...</span>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
+          ) : (
+            <div className="space-y-6 pb-32">
+              {messages.map((message, index) => (
+                <ChatMessage key={index} role={message.role} content={message.content} />
+              ))}
+              {isLoading && (
+                <div className="flex items-center justify-center py-8">
+                  <AssistantAvatar isListening={false} isSpeaking={true} size="sm" />
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Input Area */}
-      <div className="border-t border-glow-cyan/20 bg-space-dark/80 backdrop-blur-sm p-6">
-        <div className="flex gap-3 max-w-4xl mx-auto">
-          <Button
-            variant="outline"
-            size="icon"
-            className={`flex-shrink-0 border-glow-cyan/30 hover:bg-glow-cyan/10 ${
-              isListening ? 'bg-red-500 hover:bg-red-600 animate-pulse' : ''
-            }`}
-            onClick={handleVoiceToggle}
-            disabled={!isSupported}
-          >
-            <Mic className="h-5 w-5" />
-          </Button>
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Type a message or command..."
-            disabled={isLoading}
-            className="flex-1 bg-space-lighter border-glow-cyan/30 focus:border-glow-cyan"
-          />
-          <Button
-            onClick={handleSend}
-            disabled={isLoading || !input.trim()}
-            className="flex-shrink-0 bg-gradient-to-r from-glow-cyan to-glow-purple hover:opacity-90"
-          >
-            <Send className="h-5 w-5" />
-          </Button>
+      {/* Bottom Input Bar - Fixed */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-md border-t border-border">
+        <div className="max-w-3xl mx-auto px-4 py-4">
+          <div className="flex items-center gap-3 bg-card rounded-full shadow-medium px-4 py-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full flex-shrink-0"
+              onClick={() => setInput('')}
+            >
+              <Keyboard className="h-5 w-5" />
+            </Button>
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Ask me anything..."
+              disabled={isLoading}
+              className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base"
+            />
+            <Button
+              size="icon"
+              className={`rounded-full flex-shrink-0 transition-all ${
+                isListening 
+                  ? 'bg-red-500 hover:bg-red-600 animate-pulse-ring' 
+                  : 'bg-primary hover:bg-primary/90'
+              }`}
+              onClick={handleVoiceToggle}
+              disabled={!isSupported}
+            >
+              <Mic className="h-5 w-5" />
+            </Button>
+          </div>
+          {isListening && (
+            <p className="text-center text-sm text-muted-foreground mt-2">
+              Listening...
+            </p>
+          )}
         </div>
       </div>
 

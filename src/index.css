@@ -8,62 +8,57 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 218 27% 6%;
-    --foreground: 200 100% 95%;
+    --background: 0 0% 100%;
+    --foreground: 220 13% 18%;
 
-    --card: 220 25% 8%;
-    --card-foreground: 200 100% 95%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 18%;
 
-    --popover: 220 25% 8%;
-    --popover-foreground: 200 100% 95%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 18%;
 
-    --primary: 189 100% 50%;
-    --primary-foreground: 220 25% 8%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 270 80% 65%;
-    --secondary-foreground: 200 100% 95%;
+    --secondary: 210 17% 95%;
+    --secondary-foreground: 220 13% 18%;
 
-    --muted: 220 20% 20%;
-    --muted-foreground: 200 20% 65%;
+    --muted: 210 17% 95%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 189 100% 50%;
-    --accent-foreground: 220 25% 8%;
+    --accent: 221 83% 53%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 15%;
-    --input: 220 20% 15%;
-    --ring: 189 100% 50%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 221 83% 53%;
 
-    --radius: 1rem;
+    --radius: 1.5rem;
     
-    --glow-cyan: 189 100% 50%;
-    --glow-purple: 270 80% 65%;
-    --space-dark: 218 27% 6%;
-    --space-lighter: 220 25% 12%;
+    --google-blue: 221 83% 53%;
+    --google-red: 4 90% 58%;
+    --google-yellow: 48 100% 50%;
+    --google-green: 142 71% 45%;
     
-    --gradient-radial: radial-gradient(circle at center, hsl(var(--glow-cyan) / 0.15), transparent 70%);
-    --gradient-glow: linear-gradient(135deg, hsl(var(--glow-cyan) / 0.3), hsl(var(--glow-purple) / 0.3));
-    --shadow-glow: 0 0 40px hsl(var(--glow-cyan) / 0.4), 0 0 80px hsl(var(--glow-cyan) / 0.2);
-    --shadow-glow-purple: 0 0 40px hsl(var(--glow-purple) / 0.4), 0 0 80px hsl(var(--glow-purple) / 0.2);
+    --assistant-surface: 0 0% 98%;
+    --assistant-surface-variant: 210 17% 95%;
     
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+    --shadow-large: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+    
+    --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -76,49 +71,51 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground antialiased;
-    background: radial-gradient(ellipse at top, hsl(var(--space-lighter)) 0%, hsl(var(--background)) 50%);
+    background: linear-gradient(to bottom, hsl(var(--assistant-surface)) 0%, hsl(var(--background)) 100%);
     min-height: 100vh;
   }
 }
 
 @layer utilities {
-  .glow-text {
-    text-shadow: 0 0 20px hsl(var(--glow-cyan) / 0.5);
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
   }
   
-  .glow-border {
-    box-shadow: var(--shadow-glow);
+  .shadow-medium {
+    box-shadow: var(--shadow-medium);
   }
   
-  .glow-border-purple {
-    box-shadow: var(--shadow-glow-purple);
+  .shadow-large {
+    box-shadow: var(--shadow-large);
   }
   
-  .animate-pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
+  .animate-ripple {
+    animation: ripple 1.5s ease-out infinite;
   }
   
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
+  .animate-pulse-ring {
+    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
   
-  @keyframes pulse-glow {
-    0%, 100% {
+  @keyframes ripple {
+    0% {
+      transform: scale(0.8);
       opacity: 1;
-      box-shadow: var(--shadow-glow);
     }
-    50% {
-      opacity: 0.8;
-      box-shadow: 0 0 20px hsl(var(--glow-cyan) / 0.2);
+    100% {
+      transform: scale(2);
+      opacity: 0;
     }
   }
   
-  @keyframes float {
+  @keyframes pulse-ring {
     0%, 100% {
-      transform: translateY(0px);
+      transform: scale(1);
+      opacity: 0.5;
     }
     50% {
-      transform: translateY(-10px);
+      transform: scale(1.1);
+      opacity: 0.8;
     }
   }
 }
