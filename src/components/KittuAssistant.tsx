@@ -3,7 +3,8 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Mic, Settings, LogOut, GamepadIcon, Bell, Keyboard } from 'lucide-react';
+import { Mic, Settings, LogOut, Bell, Send, Gamepad2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useChat } from '@/hooks/useChat';
 import { useVoiceSynthesis } from '@/hooks/useVoiceSynthesis';
@@ -241,132 +242,163 @@ const KittuAssistant = () => {
     });
   };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <AuthForm onSuccess={() => {}} />
-      </div>
-    );
-  }
-
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Minimal Header */}
-      <div className="border-b border-border bg-card/50 backdrop-blur-sm px-4 py-3">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <h1 className="text-lg font-medium text-foreground">Assistant</h1>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowReminders(true)}
-              className="rounded-full"
-            >
-              <Bell className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowGames(true)}
-              className="rounded-full"
-            >
-              <GamepadIcon className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowSettings(true)}
-              className="rounded-full"
-            >
-              <Settings className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogout}
-              className="rounded-full"
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+      {!user ? (
+        <div className="flex-1 flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+          <AuthForm onSuccess={() => {}} />
         </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 py-8">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center min-h-[60vh]">
-              <AssistantAvatar 
-                isListening={isListening} 
-                isSpeaking={isSpeaking}
-                size="lg"
-              />
-              <h2 className="text-4xl font-normal mt-8 mb-2">
-                Hi, {profile?.full_name || 'there'}
-              </h2>
-              <p className="text-muted-foreground mb-8">How can I help you today?</p>
-              <SuggestionChips onSuggestionClick={(text) => {
-                setInput(text);
-                handleSend();
-              }} />
+      ) : (
+        <>
+          {/* Header */}
+          <header className="sticky top-0 z-50 backdrop-blur-2xl bg-white/70 border-b border-border/30 shadow-md">
+            <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <AssistantAvatar 
+                  size="sm"
+                  isListening={isListening}
+                  isSpeaking={isSpeaking}
+                />
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-google-blue via-google-red to-google-yellow bg-clip-text text-transparent">
+                    Assistant
+                  </h1>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    {isListening ? '🎤 Listening...' : isSpeaking ? '🔊 Speaking...' : '✨ Ready to help'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowReminders(true)}
+                  className="hover:bg-google-blue/10 hover:text-google-blue transition-all"
+                >
+                  <Bell className="w-5 h-5" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowGames(true)}
+                  className="hover:bg-google-green/10 hover:text-google-green transition-all"
+                >
+                  <Gamepad2 className="w-5 h-5" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowSettings(true)}
+                  className="hover:bg-google-yellow/20 hover:text-google-yellow transition-all"
+                >
+                  <Settings className="w-5 h-5" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={handleLogout}
+                  className="hover:bg-google-red/10 hover:text-google-red transition-all"
+                >
+                  <LogOut className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-6 pb-32">
-              {messages.map((message, index) => (
-                <ChatMessage key={index} role={message.role} content={message.content} />
-              ))}
-              {isLoading && (
-                <div className="flex items-center justify-center py-8">
-                  <AssistantAvatar isListening={false} isSpeaking={true} size="sm" />
+          </header>
+
+          {/* Main Content */}
+          <main className="flex-1 overflow-y-auto">
+            <div className="max-w-5xl mx-auto px-6 py-12">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center min-h-[65vh] space-y-10">
+                  <div className="animate-fade-in">
+                    <AssistantAvatar 
+                      size="lg"
+                      isListening={isListening}
+                      isSpeaking={isSpeaking}
+                    />
+                  </div>
+                  <div className="text-center space-y-3 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                    <h2 className="text-4xl font-bold bg-gradient-to-r from-google-blue via-google-red to-google-yellow bg-clip-text text-transparent">
+                      Hi, I'm your Assistant
+                    </h2>
+                    <p className="text-muted-foreground text-xl font-medium">How can I help you today?</p>
+                  </div>
+                  <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                    <SuggestionChips onSuggestionClick={(text) => {
+                      setInput(text);
+                      handleSend();
+                    }} />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {messages.map((msg, index) => (
+                    <ChatMessage
+                      key={index}
+                      role={msg.role}
+                      content={msg.content}
+                    />
+                  ))}
+                  {isLoading && (
+                    <div className="flex items-center gap-4 animate-fade-in">
+                      <AssistantAvatar size="sm" isSpeaking={true} />
+                      <div className="bg-white/95 backdrop-blur-sm rounded-3xl px-6 py-4 shadow-lg border border-border/50">
+                        <div className="flex gap-2">
+                          <div className="w-3 h-3 bg-google-blue rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-3 h-3 bg-google-red rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-3 h-3 bg-google-yellow rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-              <div ref={messagesEndRef} />
             </div>
-          )}
-        </div>
-      </div>
+          </main>
 
-      {/* Bottom Input Bar - Fixed */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-md border-t border-border">
-        <div className="max-w-3xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-3 bg-card rounded-full shadow-medium px-4 py-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full flex-shrink-0"
-              onClick={() => setInput('')}
-            >
-              <Keyboard className="h-5 w-5" />
-            </Button>
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Ask me anything..."
-              disabled={isLoading}
-              className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base"
-            />
-            <Button
-              size="icon"
-              className={`rounded-full flex-shrink-0 transition-all ${
-                isListening 
-                  ? 'bg-red-500 hover:bg-red-600 animate-pulse-ring' 
-                  : 'bg-primary hover:bg-primary/90'
-              }`}
-              onClick={handleVoiceToggle}
-              disabled={!isSupported}
-            >
-              <Mic className="h-5 w-5" />
-            </Button>
+          {/* Input Bar */}
+          <div className="sticky bottom-0 backdrop-blur-2xl bg-white/80 border-t border-border/30 shadow-2xl">
+            <div className="max-w-5xl mx-auto px-6 py-5">
+              <div className="flex gap-3 items-end">
+                <div className="flex-1 relative">
+                  <Textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                      }
+                    }}
+                    placeholder="Ask me anything..."
+                    className="min-h-[60px] max-h-36 resize-none rounded-3xl border-2 border-border bg-white/90 backdrop-blur-sm pr-12 focus:border-google-blue focus:shadow-lg transition-all text-base"
+                  />
+                </div>
+                <Button
+                  onClick={handleVoiceToggle}
+                  variant={isListening ? "default" : "outline"}
+                  size="icon"
+                  className={`rounded-full w-16 h-16 flex-shrink-0 transition-all duration-300 ${
+                    isListening 
+                      ? 'bg-google-red hover:bg-google-red/90 text-white shadow-2xl scale-110 animate-pulse' 
+                      : 'hover:bg-google-blue/10 hover:border-google-blue hover:scale-105 border-2'
+                  }`}
+                >
+                  <Mic className="w-6 h-6" />
+                </Button>
+                <Button
+                  onClick={() => handleSend()}
+                  disabled={!input.trim() || isLoading}
+                  className="rounded-full w-16 h-16 flex-shrink-0 bg-gradient-to-r from-google-blue via-google-red to-google-yellow hover:shadow-2xl hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:scale-100"
+                >
+                  <Send className="w-6 h-6" />
+                </Button>
+              </div>
+            </div>
           </div>
-          {isListening && (
-            <p className="text-center text-sm text-muted-foreground mt-2">
-              Listening...
-            </p>
-          )}
-        </div>
-      </div>
+        </>
+      )}
 
       {showSettings && (
         <SettingsPanel
