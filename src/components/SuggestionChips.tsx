@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Sparkles, Clock, CloudSun, Newspaper } from 'lucide-react';
+import { Sparkles, Clock, CloudSun, Newspaper, Calculator, Dices } from 'lucide-react';
 
 interface SuggestionChipsProps {
   onSuggestionClick: (suggestion: string) => void;
@@ -7,9 +7,11 @@ interface SuggestionChipsProps {
 
 const suggestions = [
   { icon: Sparkles, text: 'Tell me a joke', color: 'hover:bg-blue-50' },
-  { icon: Clock, text: 'Set a reminder', color: 'hover:bg-red-50' },
   { icon: CloudSun, text: 'Weather today', color: 'hover:bg-yellow-50' },
   { icon: Newspaper, text: 'Latest news', color: 'hover:bg-green-50' },
+  { icon: Calculator, text: 'Calculate 25 * 4', color: 'hover:bg-purple-50' },
+  { icon: Dices, text: 'Flip a coin', color: 'hover:bg-red-50' },
+  { icon: Clock, text: 'What time is it', color: 'hover:bg-orange-50' },
 ];
 
 export const SuggestionChips = ({ onSuggestionClick }: SuggestionChipsProps) => {
