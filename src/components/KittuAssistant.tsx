@@ -30,7 +30,8 @@ const KittuAssistant = () => {
   const { toast } = useToast();
 
   const { messages, sendMessage, isLoading, sendGreeting, hasGreeted, setMessages } = useChat(
-    profile?.language_preference || 'en'
+    profile?.language_preference || 'en',
+    profile?.full_name
   );
   const { speak, stop, isSpeaking } = useVoiceSynthesis(
     profile?.voice_enabled ?? true,

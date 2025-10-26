@@ -3,14 +3,17 @@ import { supabase } from '@/integrations/supabase/client';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
-export const useChat = (languagePreference: string = 'en') => {
+export const useChat = (languagePreference: string = 'en', userName?: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasGreeted, setHasGreeted] = useState(false);
 
   const sendGreeting = () => {
     if (!hasGreeted) {
-      setMessages([{ role: 'assistant', content: 'Hello user, how can I help you?' }]);
+      const greeting = userName 
+        ? `Hello ${userName}, how can I help you?` 
+        : 'Hello, how can I help you?';
+      setMessages([{ role: 'assistant', content: greeting }]);
       setHasGreeted(true);
     }
   };
