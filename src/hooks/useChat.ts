@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
-export const useChat = (languagePreference: string = 'en', userName?: string) => {
+export const useChat = (
+  languagePreference: string = 'en', 
+  userName?: string
+) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasGreeted, setHasGreeted] = useState(false);

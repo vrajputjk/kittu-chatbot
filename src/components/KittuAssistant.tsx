@@ -17,6 +17,17 @@ import { RemindersPanel } from './RemindersPanel';
 import { SuggestionChips } from './SuggestionChips';
 import { AssistantAvatar } from './AssistantAvatar';
 import { parseCommand, executeCommand } from '@/utils/commandParser';
+import { QuickActions } from './QuickActions';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const KittuAssistant = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -25,6 +36,7 @@ const KittuAssistant = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showGames, setShowGames] = useState(false);
   const [showReminders, setShowReminders] = useState(false);
+  const [showClearDialog, setShowClearDialog] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -243,6 +255,15 @@ const KittuAssistant = () => {
     });
   };
 
+  const handleClearChat = () => {
+    setMessages([]);
+    setShowClearDialog(false);
+    toast({
+      title: 'Chat cleared',
+      description: 'Your conversation history has been cleared.',
+    });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       {!user ? (
@@ -271,7 +292,11 @@ const KittuAssistant = () => {
               </div>
               
               <div className="flex items-center gap-2">
-                <Button 
+                <QuickActions 
+                  onClearChat={() => setShowClearDialog(true)} 
+                  messages={messages}
+                />
+                <Button
                   variant="ghost" 
                   size="sm"
                   onClick={() => setShowReminders(true)}
@@ -339,6 +364,7 @@ const KittuAssistant = () => {
                       key={index}
                       role={msg.role}
                       content={msg.content}
+                      timestamp={new Date().toISOString()}
                     />
                   ))}
                   {isLoading && (
@@ -349,6 +375,7 @@ const KittuAssistant = () => {
                           <div className="w-3 h-3 bg-google-blue rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                           <div className="w-3 h-3 bg-google-red rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                           <div className="w-3 h-3 bg-google-yellow rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          <div className="w-3 h-3 bg-google-green rounded-full animate-bounce" style={{ animationDelay: '450ms' }} />
                         </div>
                       </div>
                     </div>
@@ -414,6 +441,23 @@ const KittuAssistant = () => {
       {showGames && <GamesPanel onClose={() => setShowGames(false)} />}
 
       {showReminders && <RemindersPanel onClose={() => setShowReminders(false)} userId={user.id} />}
+
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete your current conversation. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearChat} className="bg-google-red hover:bg-google-red/90">
+              Clear
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
