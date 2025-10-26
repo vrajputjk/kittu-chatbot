@@ -10,7 +10,7 @@ export const useChat = (languagePreference: string = 'en') => {
 
   const sendGreeting = () => {
     if (!hasGreeted) {
-      setMessages([{ role: 'assistant', content: 'Hello Rajput, how can I help you?' }]);
+      setMessages([{ role: 'assistant', content: 'Hello user, how can I help you?' }]);
       setHasGreeted(true);
     }
   };

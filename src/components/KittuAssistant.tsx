@@ -77,7 +77,7 @@ const KittuAssistant = () => {
     if (user && !hasGreeted) {
       sendGreeting();
     }
-  }, [user, hasGreeted, sendGreeting]);
+  }, [user, hasGreeted]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -85,9 +85,9 @@ const KittuAssistant = () => {
 
   // Speak assistant messages
   useEffect(() => {
-    if (messages.length > 0) {
+    if (messages.length > 0 && !isLoading) {
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage.role === 'assistant' && !isLoading) {
+      if (lastMessage.role === 'assistant') {
         const langMap: Record<string, string> = {
           en: 'en-US',
           hi: 'hi-IN',
@@ -96,7 +96,7 @@ const KittuAssistant = () => {
         speak(lastMessage.content, langMap[profile?.language_preference] || 'en-US');
       }
     }
-  }, [messages, isLoading, profile?.language_preference]);
+  }, [messages.length, isLoading, profile?.language_preference]);
 
   const loadProfile = async () => {
     if (!user) return;
