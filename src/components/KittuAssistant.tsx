@@ -265,33 +265,30 @@ const KittuAssistant = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+    <div className="min-h-screen flex flex-col bg-background">
       {!user ? (
-        <div className="flex-1 flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+        <div className="flex-1 flex items-center justify-center p-4">
           <AuthForm onSuccess={() => {}} />
         </div>
       ) : (
         <>
           {/* Header */}
-          <header className="sticky top-0 z-50 backdrop-blur-2xl bg-white/70 border-b border-border/30 shadow-md">
-            <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
+          <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border">
+            <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <AssistantAvatar 
                   size="sm"
                   isListening={isListening}
                   isSpeaking={isSpeaking}
                 />
                 <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-google-blue via-google-red to-google-yellow bg-clip-text text-transparent">
+                  <h1 className="text-xl font-semibold bg-gradient-to-r from-google-blue via-google-red to-google-yellow bg-clip-text text-transparent">
                     Assistant
                   </h1>
-                  <p className="text-sm text-muted-foreground font-medium">
-                    {isListening ? '🎤 Listening...' : isSpeaking ? '🔊 Speaking...' : '✨ Ready to help'}
-                  </p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <QuickActions 
                   onClearChat={() => setShowClearDialog(true)} 
                   messages={messages}
@@ -300,33 +297,33 @@ const KittuAssistant = () => {
                   variant="ghost" 
                   size="sm"
                   onClick={() => setShowReminders(true)}
-                  className="hover:bg-google-blue/10 hover:text-google-blue transition-all"
+                  className="h-9 w-9 p-0"
                 >
-                  <Bell className="w-5 h-5" />
+                  <Bell className="w-4 h-4" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="sm"
                   onClick={() => setShowGames(true)}
-                  className="hover:bg-google-green/10 hover:text-google-green transition-all"
+                  className="h-9 w-9 p-0"
                 >
-                  <Gamepad2 className="w-5 h-5" />
+                  <Gamepad2 className="w-4 h-4" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="sm"
                   onClick={() => setShowSettings(true)}
-                  className="hover:bg-google-yellow/20 hover:text-google-yellow transition-all"
+                  className="h-9 w-9 p-0"
                 >
-                  <Settings className="w-5 h-5" />
+                  <Settings className="w-4 h-4" />
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="sm"
                   onClick={handleLogout}
-                  className="hover:bg-google-red/10 hover:text-google-red transition-all"
+                  className="h-9 w-9 p-0"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-4 h-4" />
                 </Button>
               </div>
             </div>
@@ -334,9 +331,9 @@ const KittuAssistant = () => {
 
           {/* Main Content */}
           <main className="flex-1 overflow-y-auto">
-            <div className="max-w-5xl mx-auto px-6 py-12">
+            <div className="max-w-3xl mx-auto px-4 py-6">
               {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center min-h-[65vh] space-y-10">
+                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] space-y-8">
                   <div className="animate-fade-in">
                     <AssistantAvatar 
                       size="lg"
@@ -344,13 +341,12 @@ const KittuAssistant = () => {
                       isSpeaking={isSpeaking}
                     />
                   </div>
-                  <div className="text-center space-y-3 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                    <h2 className="text-4xl font-bold bg-gradient-to-r from-google-blue via-google-red to-google-yellow bg-clip-text text-transparent">
-                      Hi, I'm your Assistant
+                  <div className="text-center space-y-2 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                    <h2 className="text-3xl md:text-4xl font-semibold bg-gradient-to-r from-google-blue via-google-red to-google-yellow bg-clip-text text-transparent">
+                      Hello, how can I help you today?
                     </h2>
-                    <p className="text-muted-foreground text-xl font-medium">How can I help you today?</p>
                   </div>
-                  <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                  <div className="animate-fade-in w-full max-w-2xl" style={{ animationDelay: '0.2s' }}>
                     <SuggestionChips onSuggestionClick={(text) => {
                       setInput(text);
                       handleSend();
@@ -358,7 +354,7 @@ const KittuAssistant = () => {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-8">
+                <div className="py-4">
                   {messages.map((msg, index) => (
                     <ChatMessage
                       key={index}
@@ -368,14 +364,15 @@ const KittuAssistant = () => {
                     />
                   ))}
                   {isLoading && (
-                    <div className="flex items-center gap-4 animate-fade-in">
-                      <AssistantAvatar size="sm" isSpeaking={true} />
-                      <div className="bg-white/95 backdrop-blur-sm rounded-3xl px-6 py-4 shadow-lg border border-border/50">
-                        <div className="flex gap-2">
-                          <div className="w-3 h-3 bg-google-blue rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <div className="w-3 h-3 bg-google-red rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <div className="w-3 h-3 bg-google-yellow rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                          <div className="w-3 h-3 bg-google-green rounded-full animate-bounce" style={{ animationDelay: '450ms' }} />
+                    <div className="flex items-start gap-3 animate-fade-in mb-6">
+                      <div className="flex-shrink-0 mt-1">
+                        <AssistantAvatar size="sm" isSpeaking={true} />
+                      </div>
+                      <div className="bg-[hsl(var(--chat-assistant-bg))] rounded-2xl px-5 py-3 border border-border shadow-sm">
+                        <div className="flex gap-1.5">
+                          <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
                       </div>
                     </div>
@@ -386,9 +383,9 @@ const KittuAssistant = () => {
           </main>
 
           {/* Input Bar */}
-          <div className="sticky bottom-0 backdrop-blur-2xl bg-white/80 border-t border-border/30 shadow-2xl">
-            <div className="max-w-5xl mx-auto px-6 py-5">
-              <div className="flex gap-3 items-end">
+          <div className="sticky bottom-0 backdrop-blur-xl bg-background/95 border-t border-border">
+            <div className="max-w-3xl mx-auto px-4 py-4">
+              <div className="flex gap-2 items-end">
                 <div className="flex-1 relative">
                   <Textarea
                     value={input}
@@ -399,28 +396,29 @@ const KittuAssistant = () => {
                         handleSend();
                       }
                     }}
-                    placeholder="Ask me anything..."
-                    className="min-h-[60px] max-h-36 resize-none rounded-3xl border-2 border-border bg-white/90 backdrop-blur-sm pr-12 focus:border-google-blue focus:shadow-lg transition-all text-base"
+                    placeholder="Message Assistant"
+                    className="min-h-[52px] max-h-32 resize-none rounded-3xl border border-input bg-background px-5 py-3 pr-12 focus:border-ring focus:ring-1 focus:ring-ring transition-all text-[15px]"
                   />
                 </div>
                 <Button
                   onClick={handleVoiceToggle}
-                  variant={isListening ? "default" : "outline"}
+                  variant={isListening ? "default" : "ghost"}
                   size="icon"
-                  className={`rounded-full w-16 h-16 flex-shrink-0 transition-all duration-300 ${
+                  className={`rounded-full h-12 w-12 flex-shrink-0 transition-all ${
                     isListening 
-                      ? 'bg-google-red hover:bg-google-red/90 text-white shadow-2xl scale-110 animate-pulse' 
-                      : 'hover:bg-google-blue/10 hover:border-google-blue hover:scale-105 border-2'
+                      ? 'bg-google-red hover:bg-google-red/90 text-white shadow-lg' 
+                      : 'hover:bg-secondary'
                   }`}
                 >
-                  <Mic className="w-6 h-6" />
+                  <Mic className="w-5 h-5" />
                 </Button>
                 <Button
                   onClick={() => handleSend()}
                   disabled={!input.trim() || isLoading}
-                  className="rounded-full w-16 h-16 flex-shrink-0 bg-gradient-to-r from-google-blue via-google-red to-google-yellow hover:shadow-2xl hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:scale-100"
+                  size="icon"
+                  className="rounded-full h-12 w-12 flex-shrink-0 bg-[hsl(var(--google-blue))] hover:bg-[hsl(var(--google-blue))]/90 disabled:opacity-50"
                 >
-                  <Send className="w-6 h-6" />
+                  <Send className="w-5 h-5" />
                 </Button>
               </div>
             </div>
