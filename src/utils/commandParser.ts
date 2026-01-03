@@ -12,6 +12,7 @@ export type CommandType =
   | 'flip_coin'
   | 'roll_dice'
   | 'fun_fact'
+  | 'generate_image'
   | 'chat'
   | 'unknown';
 

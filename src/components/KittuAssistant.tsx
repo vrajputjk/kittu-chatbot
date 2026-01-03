@@ -2,8 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Mic, Settings, LogOut, Bell, Send, Gamepad2 } from 'lucide-react';
+import { Mic, Settings, LogOut, Bell, Send, Gamepad2, ImagePlus, Languages, Sparkles } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useChat } from '@/hooks/useChat';
@@ -14,6 +13,8 @@ import { AuthForm } from './AuthForm';
 import { SettingsPanel } from './SettingsPanel';
 import { GamesPanel } from './GamesPanel';
 import { RemindersPanel } from './RemindersPanel';
+import { ImageGenerationPanel } from './ImageGenerationPanel';
+import { TranslationPanel } from './TranslationPanel';
 import { SuggestionChips } from './SuggestionChips';
 import { AssistantAvatar } from './AssistantAvatar';
 import { parseCommand, executeCommand } from '@/utils/commandParser';
@@ -28,6 +29,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const KittuAssistant = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -36,6 +43,8 @@ const KittuAssistant = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showGames, setShowGames] = useState(false);
   const [showReminders, setShowReminders] = useState(false);
+  const [showImageGen, setShowImageGen] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -63,7 +72,6 @@ const KittuAssistant = () => {
   );
 
   useEffect(() => {
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -71,7 +79,6 @@ const KittuAssistant = () => {
       }
     );
 
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -96,7 +103,6 @@ const KittuAssistant = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Speak assistant messages
   useEffect(() => {
     if (messages.length > 0 && !isLoading) {
       const lastMessage = messages[messages.length - 1];
@@ -133,17 +139,46 @@ const KittuAssistant = () => {
 
     const userInput = input.trim();
     setInput('');
-    stop(); // Stop any ongoing speech
+    stop();
 
-    // Parse command
     const command = parseCommand(userInput);
 
-    // Execute command if it's not a chat
+    // Handle image generation command
+    if (command.type === 'chat' && (
+      userInput.toLowerCase().includes('generate image') ||
+      userInput.toLowerCase().includes('create image') ||
+      userInput.toLowerCase().includes('make image') ||
+      userInput.toLowerCase().includes('draw') ||
+      userInput.toLowerCase().includes('tasveer banao')
+    )) {
+      setShowImageGen(true);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'user', content: userInput },
+        { role: 'assistant', content: "I've opened the image generation panel for you. Describe what you'd like me to create! ✨" },
+      ]);
+      return;
+    }
+
+    // Handle translation command
+    if (command.type === 'translate' || (command.type === 'chat' && (
+      userInput.toLowerCase().includes('translate') ||
+      userInput.toLowerCase().includes('anuvad') ||
+      userInput.toLowerCase().includes('translation')
+    ))) {
+      setShowTranslation(true);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'user', content: userInput },
+        { role: 'assistant', content: "I've opened the translation panel. You can translate between English, Hindi, and Hinglish! 🌐" },
+      ]);
+      return;
+    }
+
     if (command.type !== 'chat') {
       try {
         let commandResponse = '';
 
-        // Handle weather command
         if (command.type === 'weather') {
           const { data, error } = await supabase.functions.invoke('weather', {
             body: { location: command.parameters.location },
@@ -152,7 +187,6 @@ const KittuAssistant = () => {
           commandResponse = `Weather in ${data.location}: ${data.temperature}, ${data.condition}. Feels like ${data.feelsLike}. Humidity: ${data.humidity}, Wind: ${data.windSpeed}`;
         }
 
-        // Handle news command
         else if (command.type === 'news') {
           const { data, error } = await supabase.functions.invoke('news', {
             body: { query: command.parameters.query },
@@ -167,7 +201,6 @@ const KittuAssistant = () => {
           }
         }
 
-        // Handle web search command
         else if (command.type === 'web_search') {
           const { data, error } = await supabase.functions.invoke('search', {
             body: { query: command.parameters.query },
@@ -178,13 +211,11 @@ const KittuAssistant = () => {
             : 'No results found for your search.';
         }
 
-        // Handle set reminder command
         else if (command.type === 'set_reminder') {
           setShowReminders(true);
           commandResponse = 'Opening reminders panel. You can add your reminder there.';
         }
 
-        // Handle other commands
         else {
           commandResponse = (await executeCommand(command)) || '';
         }
@@ -196,7 +227,6 @@ const KittuAssistant = () => {
             { role: 'assistant', content: commandResponse },
           ]);
 
-          // Save command to database
           if (user) {
             await supabase.from('commands').insert({
               user_id: user.id,
@@ -211,13 +241,12 @@ const KittuAssistant = () => {
         setMessages((prev) => [
           ...prev,
           { role: 'user', content: userInput },
-          { role: 'assistant', content: `Sorry, I encountered an error: ${error.message}` },
+          { role: 'assistant', content: `Sorry, I encountered an error. Please try again.` },
         ]);
         return;
       }
     }
 
-    // Send to AI for chat
     await sendMessage(userInput);
   };
 
@@ -264,199 +293,276 @@ const KittuAssistant = () => {
     });
   };
 
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
-      {!user ? (
-        <div className="flex-1 flex items-center justify-center p-4">
-          <AuthForm onSuccess={() => {}} />
-        </div>
-      ) : (
-        <>
-          {/* Header */}
-          <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border">
-            <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <AssistantAvatar 
-                  size="sm"
-                  isListening={isListening}
-                  isSpeaking={isSpeaking}
-                />
-                <div>
-                  <h1 className="text-xl font-semibold bg-gradient-to-r from-google-blue via-google-red to-google-yellow bg-clip-text text-transparent">
-                    Assistant
-                  </h1>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-1">
-                <QuickActions 
-                  onClearChat={() => setShowClearDialog(true)} 
-                  messages={messages}
-                />
-                <Button
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setShowReminders(true)}
-                  className="h-9 w-9 p-0"
-                >
-                  <Bell className="w-4 h-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setShowGames(true)}
-                  className="h-9 w-9 p-0"
-                >
-                  <Gamepad2 className="w-4 h-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setShowSettings(true)}
-                  className="h-9 w-9 p-0"
-                >
-                  <Settings className="w-4 h-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={handleLogout}
-                  className="h-9 w-9 p-0"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </header>
+  const handleImageGenerated = (imageUrl: string, prompt: string) => {
+    setMessages((prev) => [
+      ...prev,
+      { role: 'assistant', content: `🎨 I created this image for you: "${prompt}"\n\n[Image Generated Successfully]` },
+    ]);
+  };
 
-          {/* Main Content */}
-          <main className="flex-1 overflow-y-auto">
-            <div className="max-w-3xl mx-auto px-4 py-6">
-              {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] space-y-8">
-                  <div className="animate-fade-in">
-                    <AssistantAvatar 
-                      size="lg"
-                      isListening={isListening}
-                      isSpeaking={isSpeaking}
-                    />
-                  </div>
-                  <div className="text-center space-y-2 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                    <h2 className="text-3xl md:text-4xl font-semibold bg-gradient-to-r from-google-blue via-google-red to-google-yellow bg-clip-text text-transparent">
-                      Hello, how can I help you today?
-                    </h2>
-                  </div>
-                  <div className="animate-fade-in w-full max-w-2xl" style={{ animationDelay: '0.2s' }}>
-                    <SuggestionChips onSuggestionClick={(text) => {
-                      setInput(text);
-                      handleSend();
-                    }} />
+  return (
+    <TooltipProvider>
+      <div className="min-h-screen flex flex-col bg-background">
+        {!user ? (
+          <div className="flex-1 flex items-center justify-center p-4">
+            <AuthForm onSuccess={() => {}} />
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border">
+              <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AssistantAvatar 
+                    size="sm"
+                    isListening={isListening}
+                    isSpeaking={isSpeaking}
+                  />
+                  <div>
+                    <h1 className="text-xl font-semibold bg-gradient-to-r from-[hsl(var(--google-blue))] via-[hsl(var(--google-red))] to-[hsl(var(--google-yellow))] bg-clip-text text-transparent">
+                      Kittu
+                    </h1>
+                    <p className="text-xs text-muted-foreground">Your AI Assistant</p>
                   </div>
                 </div>
-              ) : (
-                <div className="py-4">
-                  {messages.map((msg, index) => (
-                    <ChatMessage
-                      key={index}
-                      role={msg.role}
-                      content={msg.content}
-                      timestamp={new Date().toISOString()}
-                    />
-                  ))}
-                  {isLoading && (
-                    <div className="flex items-start gap-3 animate-fade-in mb-6">
-                      <div className="flex-shrink-0 mt-1">
-                        <AssistantAvatar size="sm" isSpeaking={true} />
-                      </div>
-                      <div className="bg-[hsl(var(--chat-assistant-bg))] rounded-2xl px-5 py-3 border border-border shadow-sm">
-                        <div className="flex gap-1.5">
-                          <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                
+                <div className="flex items-center gap-1">
+                  <QuickActions 
+                    onClearChat={() => setShowClearDialog(true)} 
+                    messages={messages}
+                  />
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setShowImageGen(true)}
+                        className="h-9 w-9 p-0"
+                      >
+                        <ImagePlus className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Generate Image</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setShowTranslation(true)}
+                        className="h-9 w-9 p-0"
+                      >
+                        <Languages className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Translate</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setShowReminders(true)}
+                        className="h-9 w-9 p-0"
+                      >
+                        <Bell className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Reminders</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setShowGames(true)}
+                        className="h-9 w-9 p-0"
+                      >
+                        <Gamepad2 className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Games</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setShowSettings(true)}
+                        className="h-9 w-9 p-0"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Settings</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={handleLogout}
+                        className="h-9 w-9 p-0"
+                      >
+                        <LogOut className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Logout</TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+            </header>
+
+            {/* Main Content */}
+            <main className="flex-1 overflow-y-auto">
+              <div className="max-w-3xl mx-auto px-4 py-6">
+                {messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] space-y-8">
+                    <div className="animate-fade-in">
+                      <AssistantAvatar 
+                        size="lg"
+                        isListening={isListening}
+                        isSpeaking={isSpeaking}
+                      />
+                    </div>
+                    <div className="text-center space-y-2 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                      <h2 className="text-3xl md:text-4xl font-semibold bg-gradient-to-r from-[hsl(var(--google-blue))] via-[hsl(var(--google-red))] to-[hsl(var(--google-yellow))] bg-clip-text text-transparent">
+                        Hi! I'm Kittu ✨
+                      </h2>
+                      <p className="text-muted-foreground">How can I help you today?</p>
+                    </div>
+                    <div className="animate-fade-in w-full max-w-2xl" style={{ animationDelay: '0.2s' }}>
+                      <SuggestionChips onSuggestionClick={(text) => {
+                        setInput(text);
+                        setTimeout(() => handleSend(), 100);
+                      }} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-4">
+                    {messages.map((msg, index) => (
+                      <ChatMessage
+                        key={index}
+                        role={msg.role}
+                        content={msg.content}
+                        timestamp={new Date().toISOString()}
+                      />
+                    ))}
+                    {isLoading && (
+                      <div className="flex items-start gap-3 animate-fade-in mb-6">
+                        <div className="flex-shrink-0 mt-1">
+                          <AssistantAvatar size="sm" isSpeaking={true} />
+                        </div>
+                        <div className="bg-[hsl(var(--chat-assistant-bg))] rounded-2xl px-5 py-3 border border-border shadow-sm">
+                          <div className="flex gap-1.5">
+                            <div className="w-2 h-2 bg-[hsl(var(--google-blue))] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <div className="w-2 h-2 bg-[hsl(var(--google-red))] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <div className="w-2 h-2 bg-[hsl(var(--google-yellow))] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            <div className="w-2 h-2 bg-[hsl(var(--google-green))] rounded-full animate-bounce" style={{ animationDelay: '450ms' }} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </main>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </div>
+            </main>
 
-          {/* Input Bar */}
-          <div className="sticky bottom-0 backdrop-blur-xl bg-background/95 border-t border-border">
-            <div className="max-w-3xl mx-auto px-4 py-4">
-              <div className="flex gap-2 items-end">
-                <div className="flex-1 relative">
-                  <Textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSend();
-                      }
-                    }}
-                    placeholder="Message Assistant"
-                    className="min-h-[52px] max-h-32 resize-none rounded-3xl border border-input bg-background px-5 py-3 pr-12 focus:border-ring focus:ring-1 focus:ring-ring transition-all text-[15px]"
-                  />
+            {/* Input Bar */}
+            <div className="sticky bottom-0 backdrop-blur-xl bg-background/95 border-t border-border">
+              <div className="max-w-3xl mx-auto px-4 py-4">
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1 relative">
+                    <Textarea
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSend();
+                        }
+                      }}
+                      placeholder="Ask me anything..."
+                      className="min-h-[52px] max-h-32 resize-none rounded-3xl border border-input bg-background px-5 py-3 pr-12 focus:border-ring focus:ring-1 focus:ring-ring transition-all text-[15px]"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleVoiceToggle}
+                    variant={isListening ? "default" : "ghost"}
+                    size="icon"
+                    className={`rounded-full h-12 w-12 flex-shrink-0 transition-all ${
+                      isListening 
+                        ? 'bg-[hsl(var(--google-red))] hover:bg-[hsl(var(--google-red))]/90 text-white shadow-lg animate-pulse' 
+                        : 'hover:bg-secondary'
+                    }`}
+                  >
+                    <Mic className="w-5 h-5" />
+                  </Button>
+                  <Button
+                    onClick={() => handleSend()}
+                    disabled={!input.trim() || isLoading}
+                    size="icon"
+                    className="rounded-full h-12 w-12 flex-shrink-0 bg-gradient-to-r from-[hsl(var(--google-blue))] to-[hsl(var(--google-green))] hover:opacity-90 disabled:opacity-50"
+                  >
+                    <Send className="w-5 h-5" />
+                  </Button>
                 </div>
-                <Button
-                  onClick={handleVoiceToggle}
-                  variant={isListening ? "default" : "ghost"}
-                  size="icon"
-                  className={`rounded-full h-12 w-12 flex-shrink-0 transition-all ${
-                    isListening 
-                      ? 'bg-google-red hover:bg-google-red/90 text-white shadow-lg' 
-                      : 'hover:bg-secondary'
-                  }`}
-                >
-                  <Mic className="w-5 h-5" />
-                </Button>
-                <Button
-                  onClick={() => handleSend()}
-                  disabled={!input.trim() || isLoading}
-                  size="icon"
-                  className="rounded-full h-12 w-12 flex-shrink-0 bg-[hsl(var(--google-blue))] hover:bg-[hsl(var(--google-blue))]/90 disabled:opacity-50"
-                >
-                  <Send className="w-5 h-5" />
-                </Button>
               </div>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
 
-      {showSettings && (
-        <SettingsPanel
-          onClose={() => {
-            setShowSettings(false);
-            loadProfile();
-          }}
-          userId={user.id}
-        />
-      )}
+        {/* Panels */}
+        {showSettings && (
+          <SettingsPanel
+            onClose={() => {
+              setShowSettings(false);
+              loadProfile();
+            }}
+            userId={user!.id}
+          />
+        )}
 
-      {showGames && <GamesPanel onClose={() => setShowGames(false)} />}
+        {showGames && <GamesPanel onClose={() => setShowGames(false)} />}
 
-      {showReminders && <RemindersPanel onClose={() => setShowReminders(false)} userId={user.id} />}
+        {showReminders && <RemindersPanel onClose={() => setShowReminders(false)} userId={user!.id} />}
 
-      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete your current conversation. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleClearChat} className="bg-google-red hover:bg-google-red/90">
-              Clear
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        {showImageGen && (
+          <ImageGenerationPanel 
+            onClose={() => setShowImageGen(false)} 
+            onImageGenerated={handleImageGenerated}
+          />
+        )}
+
+        {showTranslation && (
+          <TranslationPanel onClose={() => setShowTranslation(false)} />
+        )}
+
+        <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete your current conversation. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleClearChat} className="bg-destructive hover:bg-destructive/90">
+                Clear
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </TooltipProvider>
   );
 };
 

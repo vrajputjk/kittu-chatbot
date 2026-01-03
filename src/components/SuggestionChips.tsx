@@ -1,34 +1,37 @@
 import { Button } from '@/components/ui/button';
-import { Sparkles, Clock, CloudSun, Newspaper, Calculator, Dices } from 'lucide-react';
+import { Sparkles, Clock, CloudSun, Newspaper, Calculator, Dices, ImagePlus, Languages, Music, Brain } from 'lucide-react';
 
 interface SuggestionChipsProps {
   onSuggestionClick: (suggestion: string) => void;
 }
 
 const suggestions = [
-  { icon: Sparkles, text: 'Tell me a joke', color: 'hover:bg-blue-50' },
-  { icon: CloudSun, text: 'Weather today', color: 'hover:bg-yellow-50' },
-  { icon: Newspaper, text: 'Latest news', color: 'hover:bg-green-50' },
-  { icon: Calculator, text: 'Calculate 25 * 4', color: 'hover:bg-purple-50' },
-  { icon: Dices, text: 'Flip a coin', color: 'hover:bg-red-50' },
-  { icon: Clock, text: 'What time is it', color: 'hover:bg-orange-50' },
+  { icon: ImagePlus, text: 'Generate an image', color: 'from-pink-500 to-purple-500' },
+  { icon: Languages, text: 'Translate something', color: 'from-green-500 to-teal-500' },
+  { icon: CloudSun, text: "What's the weather?", color: 'from-yellow-500 to-orange-500' },
+  { icon: Sparkles, text: 'Tell me a joke', color: 'from-blue-500 to-indigo-500' },
+  { icon: Newspaper, text: 'Latest news', color: 'from-red-500 to-pink-500' },
+  { icon: Brain, text: 'Fun fact please', color: 'from-purple-500 to-blue-500' },
+  { icon: Calculator, text: 'Calculate 125 × 8', color: 'from-cyan-500 to-blue-500' },
+  { icon: Dices, text: 'Roll a dice', color: 'from-orange-500 to-red-500' },
 ];
 
 export const SuggestionChips = ({ onSuggestionClick }: SuggestionChipsProps) => {
   return (
-    <div className="flex flex-wrap gap-2 justify-center mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {suggestions.map((suggestion, index) => {
         const Icon = suggestion.icon;
         return (
           <Button
             key={index}
             variant="outline"
-            size="sm"
             onClick={() => onSuggestionClick(suggestion.text)}
-            className={`rounded-full border-2 ${suggestion.color} transition-colors`}
+            className="h-auto py-4 px-3 flex flex-col items-center gap-2 rounded-xl border-2 hover:border-transparent hover:shadow-lg transition-all group"
           >
-            <Icon className="h-4 w-4 mr-2" />
-            {suggestion.text}
+            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${suggestion.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+              <Icon className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-sm text-center font-medium">{suggestion.text}</span>
           </Button>
         );
       })}
