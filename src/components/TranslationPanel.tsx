@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { translationSchema, getFirstError } from '@/lib/validations';
+import { z } from 'zod';
 import {
   Select,
   SelectContent,
@@ -39,10 +41,18 @@ export const TranslationPanel = ({ onClose }: TranslationPanelProps) => {
   };
 
   const handleTranslate = async () => {
-    if (!sourceText.trim()) {
+    let validated;
+    try {
+      validated = translationSchema.parse({
+        text: sourceText,
+        sourceLang,
+        targetLang,
+      });
+    } catch (error) {
+      const message = error instanceof z.ZodError ? getFirstError(error) : 'Invalid input';
       toast({
-        title: 'Please enter text',
-        description: 'Enter the text you want to translate.',
+        title: 'Invalid input',
+        description: message,
         variant: 'destructive',
       });
       return;
@@ -53,10 +63,10 @@ export const TranslationPanel = ({ onClose }: TranslationPanelProps) => {
 
     try {
       const { data, error } = await supabase.functions.invoke('translate', {
-        body: { 
-          text: sourceText.trim(),
-          sourceLang,
-          targetLang 
+        body: {
+          text: validated.text,
+          sourceLang: validated.sourceLang,
+          targetLang: validated.targetLang,
         },
       });
 
