@@ -1,9 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const MessageSchema = z.object({
+  role: z.enum(["user", "assistant", "system"]),
+  content: z.string().min(1).max(10000, "Message too long"),
+});
+
+const BodySchema = z.object({
+  messages: z.array(MessageSchema).min(1, "At least one message required").max(100, "Too many messages"),
+  language: z.enum(["en", "hi", "hinglish"]).optional().default("en"),
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -11,14 +22,23 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, language = 'en' } = await req.json();
+    const rawBody = await req.json().catch(() => null);
+    const parsed = BodySchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({ error: parsed.error.errors[0]?.message || "Invalid input" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { messages, language } = parsed.data;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Detect language from recent messages
     const detectLanguage = (text: string): string => {
       const hindiPattern = /[\u0900-\u097F]/;
       if (hindiPattern.test(text)) return 'hi';

@@ -1,9 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const BodySchema = z.object({
+  query: z.string().trim().min(1, "Search query is required").max(200, "Query too long"),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,13 +16,18 @@ serve(async (req) => {
   }
 
   try {
-    const { query } = await req.json();
-    
-    if (!query) {
-      throw new Error('Search query is required');
+    const rawBody = await req.json().catch(() => null);
+    const parsed = BodySchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({ error: parsed.error.errors[0]?.message || "Invalid input" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Using DuckDuckGo Instant Answer API (free, no API key needed)
+    const { query } = parsed.data;
+
     const response = await fetch(
       `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`
     );
@@ -32,7 +42,7 @@ serve(async (req) => {
       abstract: searchData.Abstract || searchData.AbstractText,
       heading: searchData.Heading,
       url: searchData.AbstractURL,
-      relatedTopics: searchData.RelatedTopics?.slice(0, 5).map((topic: any) => ({
+      relatedTopics: searchData.RelatedTopics?.slice(0, 5).map((topic: { Text?: string; FirstURL?: string }) => ({
         text: topic.Text,
         url: topic.FirstURL,
       })) || [],

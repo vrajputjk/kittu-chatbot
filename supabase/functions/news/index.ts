@@ -1,9 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const BodySchema = z.object({
+  query: z.string().trim().max(200, "Query too long").optional(),
+  category: z.string().trim().max(50, "Category too long").optional().default("general"),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,17 +17,24 @@ serve(async (req) => {
   }
 
   try {
-    const { query, category = 'general' } = await req.json();
-    
-    // Using NewsAPI - free tier available
-    // Note: In production, you'd want to add NEWS_API_KEY as a secret
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed = BodySchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({ error: parsed.error.errors[0]?.message || "Invalid input" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { query, category } = parsed.data;
     const searchQuery = query || category;
+
     const response = await fetch(
       `https://newsapi.org/v2/everything?q=${encodeURIComponent(searchQuery)}&sortBy=publishedAt&pageSize=5&apiKey=demo`
     );
     
     if (!response.ok) {
-      // Fallback to mock data if API fails
       return new Response(JSON.stringify({
         articles: [
           {
