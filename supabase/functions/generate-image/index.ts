@@ -1,9 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const BodySchema = z.object({
+  prompt: z.string().trim().min(3, "Prompt must be at least 3 characters").max(2000, "Prompt too long"),
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -11,14 +16,17 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt } = await req.json();
-    
-    if (!prompt) {
+    const rawBody = await req.json().catch(() => null);
+    const parsed = BodySchema.safeParse(rawBody);
+
+    if (!parsed.success) {
       return new Response(
-        JSON.stringify({ error: "Prompt is required" }),
+        JSON.stringify({ error: parsed.error.errors[0]?.message || "Invalid input" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const { prompt } = parsed.data;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {

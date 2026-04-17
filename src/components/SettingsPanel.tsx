@@ -7,6 +7,8 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { X, Loader2 } from 'lucide-react';
+import { settingsSchema, getFirstError } from '@/lib/validations';
+import { z } from 'zod';
 import {
   Select,
   SelectContent,
@@ -74,13 +76,15 @@ export const SettingsPanel = ({ onClose, userId }: SettingsPanelProps) => {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const validated = settingsSchema.parse(profile);
+
       const { error } = await supabase
         .from('profiles')
         .update({
-          full_name: profile.full_name,
-          voice_enabled: profile.voice_enabled,
-          voice_speed: profile.voice_speed,
-          language_preference: profile.language_preference,
+          full_name: validated.full_name,
+          voice_enabled: validated.voice_enabled,
+          voice_speed: validated.voice_speed,
+          language_preference: validated.language_preference,
         })
         .eq('user_id', userId);
 
@@ -91,10 +95,16 @@ export const SettingsPanel = ({ onClose, userId }: SettingsPanelProps) => {
         description: 'Your preferences have been updated.',
       });
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        error instanceof z.ZodError
+          ? getFirstError(error)
+          : error instanceof Error
+          ? error.message
+          : 'Failed to save settings';
       toast({
         title: 'Error saving settings',
-        description: error.message,
+        description: message,
         variant: 'destructive',
       });
     } finally {

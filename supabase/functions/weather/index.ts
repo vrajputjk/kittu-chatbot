@@ -1,9 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const BodySchema = z.object({
+  location: z.string().trim().min(1, "Location is required").max(100, "Location too long")
+    .regex(/^[a-zA-Z0-9\s,.\-']+$/, "Invalid characters in location"),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,9 +17,18 @@ serve(async (req) => {
   }
 
   try {
-    const { location } = await req.json();
+    const rawBody = await req.json().catch(() => null);
+    const parsed = BodySchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({ error: parsed.error.errors[0]?.message || "Invalid input" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { location } = parsed.data;
     
-    // Using wttr.in - a free weather service that doesn't require an API key
     const response = await fetch(`https://wttr.in/${encodeURIComponent(location)}?format=j1`);
     
     if (!response.ok) {

@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { X, Plus, Trash2, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { reminderSchema, getFirstError } from '@/lib/validations';
+import { z } from 'zod';
 
 interface Reminder {
   id: string;
@@ -50,21 +52,18 @@ export const RemindersPanel = ({ onClose, userId }: RemindersPanelProps) => {
   };
 
   const addReminder = async () => {
-    if (!title || !reminderTime) {
-      toast({
-        title: 'Missing fields',
-        description: 'Please provide title and time',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     try {
+      const validated = reminderSchema.parse({
+        title,
+        description: description || undefined,
+        reminderTime,
+      });
+
       const { error } = await supabase.from('reminders').insert({
         user_id: userId,
-        title,
-        description,
-        reminder_time: new Date(reminderTime).toISOString(),
+        title: validated.title,
+        description: validated.description ?? null,
+        reminder_time: new Date(validated.reminderTime).toISOString(),
       });
 
       if (error) throw error;
@@ -78,10 +77,16 @@ export const RemindersPanel = ({ onClose, userId }: RemindersPanelProps) => {
       setDescription('');
       setReminderTime('');
       loadReminders();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        error instanceof z.ZodError
+          ? getFirstError(error)
+          : error instanceof Error
+          ? error.message
+          : 'Failed to add reminder';
       toast({
         title: 'Error',
-        description: error.message,
+        description: message,
         variant: 'destructive',
       });
     }

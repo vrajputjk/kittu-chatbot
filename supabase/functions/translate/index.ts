@@ -1,9 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const BodySchema = z.object({
+  text: z.string().trim().min(1, "Text is required").max(5000, "Text too long"),
+  sourceLang: z.enum(["en", "hi", "hinglish"]).default("en"),
+  targetLang: z.enum(["en", "hi", "hinglish"]).default("en"),
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -11,14 +18,17 @@ serve(async (req) => {
   }
 
   try {
-    const { text, sourceLang, targetLang } = await req.json();
-    
-    if (!text) {
+    const rawBody = await req.json().catch(() => null);
+    const parsed = BodySchema.safeParse(rawBody);
+
+    if (!parsed.success) {
       return new Response(
-        JSON.stringify({ error: "Text is required" }),
+        JSON.stringify({ error: parsed.error.errors[0]?.message || "Invalid input" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const { text, sourceLang, targetLang } = parsed.data;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {

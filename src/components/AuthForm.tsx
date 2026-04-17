@@ -5,6 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft } from 'lucide-react';
+import {
+  loginSchema,
+  signupSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  getFirstError,
+} from '@/lib/validations';
+import { z } from 'zod';
 
 interface AuthFormProps {
   onSuccess: () => void;
@@ -36,7 +44,9 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
     setLoading(true);
 
     try {
+      // Validate input with zod
       if (view === 'login') {
+        loginSchema.parse({ email, password });
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -50,6 +60,7 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
         });
         onSuccess();
       } else if (view === 'signup') {
+        signupSchema.parse({ email, password, fullName });
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -69,6 +80,7 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
         });
         onSuccess();
       } else if (view === 'forgot-password') {
+        forgotPasswordSchema.parse({ email });
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/`,
         });
@@ -81,14 +93,7 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
         });
         setView('login');
       } else if (view === 'reset-password') {
-        if (password !== confirmPassword) {
-          toast({
-            title: "Error",
-            description: "Passwords don't match",
-            variant: "destructive",
-          });
-          return;
-        }
+        resetPasswordSchema.parse({ password, confirmPassword });
 
         const { error } = await supabase.auth.updateUser({
           password: password,
@@ -103,10 +108,16 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
         setView('login');
         onSuccess();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        error instanceof z.ZodError
+          ? getFirstError(error)
+          : error instanceof Error
+          ? error.message
+          : 'An error occurred';
       toast({
         title: "Error",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     } finally {

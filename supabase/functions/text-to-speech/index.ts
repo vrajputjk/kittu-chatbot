@@ -1,9 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const BodySchema = z.object({
+  text: z.string().trim().min(1, "Text is required").max(5000, "Text too long"),
+  language: z.string().max(20).optional().default("en"),
+  gender: z.enum(["female", "male"]).optional().default("female"),
+});
 
 // ElevenLabs voice IDs for different languages
 const voiceMap: Record<string, { id: string; name: string }> = {
@@ -20,19 +27,21 @@ serve(async (req) => {
   }
 
   try {
-    const { text, language = "en", gender = "female" } = await req.json();
-    
-    if (!text) {
+    const rawBody = await req.json().catch(() => null);
+    const parsed = BodySchema.safeParse(rawBody);
+
+    if (!parsed.success) {
       return new Response(
-        JSON.stringify({ error: "Text is required" }),
+        JSON.stringify({ error: parsed.error.errors[0]?.message || "Invalid input" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    const { text, language, gender } = parsed.data;
+
     const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
     
     if (!ELEVENLABS_API_KEY) {
-      // Return info that premium voice is not available
       return new Response(
         JSON.stringify({ 
           available: false,
@@ -42,7 +51,6 @@ serve(async (req) => {
       );
     }
 
-    // Get the appropriate voice
     const voiceKey = `${language.split('-')[0]}-${gender}`;
     const voice = voiceMap[voiceKey] || voiceMap.default;
 
@@ -77,7 +85,6 @@ serve(async (req) => {
 
     const audioBuffer = await response.arrayBuffer();
     
-    // Convert to base64 using Deno's built-in encoding
     const uint8Array = new Uint8Array(audioBuffer);
     let binary = '';
     for (let i = 0; i < uint8Array.length; i++) {
